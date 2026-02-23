@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UPDATE - Cloud Sync JST</title>
+    <title>UPDATE - Cloud Sync Final</title>
     <style>
         :root { --primary: #4cb6f2; --danger: #ef4444; --bg: #f0f4f8; --text: #334155; --success: #22c55e; }
         body { font-family: sans-serif; margin: 0; background: var(--bg); padding-bottom: 90px; color: var(--text); }
@@ -79,7 +79,7 @@
 <input type="file" id="csv-input" class="hidden" accept=".csv" onchange="processFile(this)">
 
 <script>
-const GAS_URL = "AKfycbwhlCgwE2XZNRYbfPKlqa-An9vuh0RSLI1vbRr4Aj0kfrERU1OQYvExpwK5ySK-7KNa"; // ← 必ず書き換えてください
+const GAS_URL = "ここに最新のデプロイURLを貼る"; // ← 必ず新しいURLに更新してください
 
 let db, dataList = [], categories = [], currentView = 'list', currentEditIdx = -1;
 
@@ -90,7 +90,6 @@ request.onupgradeneeded = (e) => {
 };
 request.onsuccess = (e) => { db = e.target.result; loadFromDB(); };
 
-// 【修正】日本時間の今日を取得 (YYYY-MM-DD)
 function getTodayJST() {
     const now = new Date();
     const jstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
@@ -100,7 +99,7 @@ function getTodayJST() {
 function showToast(msg) {
     const t = document.getElementById('toast');
     t.innerText = msg; t.style.display = 'block';
-    setTimeout(() => { t.style.display = 'none'; }, 2000);
+    setTimeout(() => { t.style.display = 'none'; }, 2500);
 }
 
 function loadFromDB() {
@@ -205,7 +204,7 @@ function renderList() {
         if(key && !(item.name || "").toLowerCase().includes(key)) return;
 
         const latestHistoryDate = (item.history && item.history.length > 0) ? item.history[0] : "";
-        const calendarValue = latestHistoryHistoryDate || item.tempDate || getTodayJST();
+        const calendarValue = latestHistoryDate || item.tempDate || getTodayJST();
 
         let diff = "- ";
         if(latestHistoryDate) {
@@ -232,42 +231,44 @@ function renderList() {
     });
 }
 
-// --- スプレッドシート同期機能 (日本時間 & 多行対応) ---
+// --- 同期機能 (CORSリダイレクト対策版) ---
 async function syncWithSheets() {
-    if(!GAS_URL || GAS_URL.includes("ここに")) return alert("GASのURLを設定してください。");
-    showToast("クラウドと同期中...");
+    if(!GAS_URL || GAS_URL.includes("AKfycbxWLRQkq8CdX-vQgcbUdMpHRv3JgnouVlbvsEUAFcrpz1MdCMsKoSDrD5fbQrOWV9fVRg")) return alert("GASのURLを設定してください");
+    showToast("通信中...");
     try {
-        // 1. クラウドから取得
+        // 1. クラウドからデータを取得 (GET)
         const res = await fetch(GAS_URL, { redirect: "follow" });
+        if (!res.ok) throw new Error("HTTP Error: " + res.status);
         const json = await res.json();
         
-        if(json.dataList) {
-            // 【重要】2次元配列をオブジェクトに変換
-            dataList = json.dataList.filter(row => row[1]).map((row, i) => ({
+        if (json.dataList) {
+            // スプレッドシートの2次元配列をオブジェクトに正しく復元
+            dataList = json.dataList.filter(row => row && row[1]).map((row, i) => ({
                 id: Date.now() + i,
                 category: row[0] || "",
                 name: row[1] || "",
                 tempDate: getTodayJST(),
                 history: row[2] ? row[2].toString().split('|').filter(d => d) : []
             }));
-            // 【重要】カテゴリの復元 (row[0]が名前)
+            // カテゴリの復元 (row[0]がカテゴリ名)
             categories = json.categories.map(row => row[0]).filter(c => c);
             
             autoSave();
             renderList();
         }
 
-        // 2. クラウドへ書き出し
+        // 2. 現在のデータをクラウドへ送信 (POST)
+        // ※POSTはレスポンスの中身を確認しなくても、GAS側が正常に動いていればOK
         await fetch(GAS_URL, {
             method: "POST",
-            body: JSON.stringify({ dataList: dataList, categories: categories }),
-            redirect: "follow"
+            mode: "no-cors", 
+            body: JSON.stringify({ dataList: dataList, categories: categories })
         });
         
-        showToast("同期が成功しました！");
+        showToast("クラウド同期完了！");
     } catch (e) {
-        showToast("同期エラーが発生しました");
-        console.error("Sync Error:", e);
+        showToast("同期失敗：設定を確認してください");
+        console.error("Error details:", e);
     }
 }
 
