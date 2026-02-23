@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UPDATE - Final</title>
+    <title>UPDATE - Final Fix</title>
     <style>
         :root { --primary: #4cb6f2; --danger: #ef4444; --bg: #f0f4f8; --text: #334155; }
         body { font-family: sans-serif; margin: 0; background: var(--bg); padding-bottom: 90px; color: var(--text); }
@@ -203,7 +203,7 @@ function renderList() {
         let diff = "- ";
         if(latestHistoryDate) {
             const d1 = new Date(); d1.setHours(0,0,0,0);
-            const d2 = new Date(latestHistoryDate); d2.setHours(0,0,0,0);
+            const d2 = new Date(latestHistoryDate.replace(/-/g, '/')); d2.setHours(0,0,0,0);
             if(!isNaN(d2.getTime())) diff = Math.floor((d1 - d2) / (1000*60*60*24));
         }
 
@@ -229,11 +229,9 @@ async function syncWithSheets() {
     if(!GAS_URL || GAS_URL.includes("ここに")) return alert("GASのURLを貼ってください");
     showToast("保存中...");
     try {
-        // 先に今のデータを送る
         await fetch(GAS_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ dataList: dataList, categories: categories }) });
         await new Promise(r => setTimeout(r, 800));
         showToast("読み込み中...");
-        // 読み込む
         const res = await fetch(GAS_URL, { redirect: "follow" });
         const json = await res.json();
         if (json.dataList) {
@@ -244,6 +242,7 @@ async function syncWithSheets() {
                 tempDate: getTodayJST(),
                 history: row[2] ? row[2].toString().split('|').filter(d => d) : []
             }));
+            // 【重要】categoriesも2次元配列の0番目から取り出す
             categories = json.categories ? json.categories.map(row => row[0]).filter(c => c) : [];
             autoSave(); renderList(); showToast("同期完了！");
         }
