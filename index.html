@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UPDATE - Cloud Sync Final</title>
+    <title>UPDATE - Cloud Sync Fix</title>
     <style>
-        :root { --primary: #4cb6f2; --danger: #ef4444; --bg: #f0f4f8; --text: #334155; --success: #22c55e; }
+        :root { --primary: #4cb6f2; --danger: #ef4444; --bg: #f0f4f8; --text: #334155; }
         body { font-family: sans-serif; margin: 0; background: var(--bg); padding-bottom: 90px; color: var(--text); }
         header { background: white; padding: 12px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .controls { display: flex; gap: 8px; margin-bottom: 10px; }
@@ -79,7 +79,7 @@
 <input type="file" id="csv-input" class="hidden" accept=".csv" onchange="processFile(this)">
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyAH60T5LlpXB_EDNDVyrcdndvji82QJ5rPFICarB4R4mkmDCNtqZ21xqJ85EOpVKD3PA/exec"; // ← 1箇所だけ書き換え
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxJRA47XrAaVuBI5RzzxC-SmjmFdZg82KAk3jF4pgyTF9AXDlPupdQh_Ca-FDumudWJyA/exec"; // ← 必ず新しいURLに更新
 
 let db, dataList = [], categories = [], currentView = 'list', currentEditIdx = -1;
 
@@ -205,7 +205,7 @@ function renderList() {
         if(key && !(item.name || "").toLowerCase().includes(key)) return;
 
         const latestHistoryDate = (item.history && item.history.length > 0) ? item.history[0] : "";
-        const calendarValue = latestHistoryDate || item.tempDate || getTodayJST();
+        const calendarValue = item.tempDate || getTodayJST();
 
         let diff = "- ";
         if(latestHistoryDate) {
@@ -232,28 +232,27 @@ function renderList() {
     });
 }
 
-// --- 同期機能 (保存してから読み込む双方向同期) ---
+// --- 同期機能 (2次元配列対応・文字化け回避版) ---
 async function syncWithSheets() {
     if(!GAS_URL || GAS_URL.includes("ここに")) return alert("GASのURLを設定してください");
     showToast("クラウドへ保存中...");
     try {
-        // 1. まず現在のデータをクラウドへ送る (POST)
+        // 1. クラウドへ書き込み (POST)
         await fetch(GAS_URL, {
             method: "POST",
             mode: "no-cors",
             body: JSON.stringify({ dataList: dataList, categories: categories })
         });
 
-        // 通信の安定待ち
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 800));
         showToast("最新データを取得中...");
 
-        // 2. クラウドから最新データを読み込む (GET)
+        // 2. クラウドから読み込み (GET)
         const res = await fetch(GAS_URL, { redirect: "follow" });
         const json = await res.json();
         
         if (json.dataList) {
-            // スプレッドシートの行列をオブジェクトに変換
+            // [カテゴリ, 名前, 履歴] の2次元配列をオブジェクトに正しく復元
             dataList = json.dataList.filter(row => row[1]).map((row, i) => ({
                 id: Date.now() + i,
                 category: row[0] || "",
@@ -261,8 +260,10 @@ async function syncWithSheets() {
                 tempDate: getTodayJST(),
                 history: row[2] ? row[2].toString().split('|').filter(d => d) : []
             }));
+            
+            // カテゴリ名の復元 (GAS側で[0]処理済み)
             if (json.categories) {
-                categories = json.categories.map(row => row[0]).filter(c => c);
+                categories = json.categories.filter(c => c);
             }
             
             autoSave();
