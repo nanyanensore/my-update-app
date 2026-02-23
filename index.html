@@ -79,7 +79,7 @@
 <input type="file" id="csv-input" class="hidden" accept=".csv" onchange="processFile(this)">
 
 <script>
-const GAS_URL = "AKfycbxWLRQkq8CdX-vQgcbUdMpHRv3JgnouVlbvsEUAFcrpz1MdCMsKoSDrD5fbQrOWV9fVRg"; // ← 必ず新しいURLに更新してください
+const GAS_URL = "こAKfycbxWLRQkq8CdX-vQgcbUdMpHRv3JgnouVlbvsEUAFcrpz1MdCMsKoSDrD5fbQrOWV9fVRg"; // ← 必ず新しいURLに更新してください
 
 let db, dataList = [], categories = [], currentView = 'list', currentEditIdx = -1;
 
@@ -233,7 +233,7 @@ function renderList() {
 
 // --- 同期機能 (CORSリダイレクト対策版) ---
 async function syncWithSheets() {
-    if(!GAS_URL || GAS_URL.includes("AKfycbxWLRQkq8CdX-vQgcbUdMpHRv3JgnouVlbvsEUAFcrpz1MdCMsKoSDrD5fbQrOWV9fVRg")) return alert("GASのURLを設定してください");
+    if(!GAS_URL || GAS_URL.includes("ここに")) return alert("GASのURLを設定してください");
     showToast("通信中...");
     try {
         // 1. クラウドからデータを取得 (GET)
