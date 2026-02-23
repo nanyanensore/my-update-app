@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>UPDATE - Cloud Sync</title>
+    <style>
+        :root { --primary: #4cb6f2; --danger: #ef4444; --bg: #f0f4f8; --text: #334155; --success: #22c55e; }
+        body { font-family: sans-serif; margin: 0; background: var(--bg); padding-bottom: 90px; color: var(--text); }
+        header { background: white; padding: 12px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .controls { display: flex; gap: 8px; margin-bottom: 10px; }
+        .filter-select { flex: 2; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 1.1rem; }
+        .btn-add { flex: 1; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1rem; }
+        .search-bar { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 1.1rem; box-sizing: border-box; }
+        .container { padding: 10px; }
+        .card { background: white; border-radius: 12px; padding: 14px; margin-bottom: 10px; border: 1px solid #e2e8f0; }
+        .item-name { width: 100%; border: none; border-bottom: 1px solid #eee; font-size: 1.2rem; font-weight: bold; padding: 5px 0; outline: none; margin-bottom: 10px; }
+        .row-2 { display: flex; align-items: center; justify-content: space-between; gap: 5px; }
+        .item-date { width: 145px; border: 1px solid #ddd; border-radius: 6px; padding: 8px; font-size: 1rem; text-align: center; font-family: monospace; }
+        .item-days { font-size: 0.9rem; background: #eee; padding: 6px 8px; border-radius: 6px; font-weight: bold; min-width: 45px; text-align: center; }
+        .btn-sm { border: none; border-radius: 6px; padding: 10px 12px; color: white; font-weight: bold; font-size: 0.9rem; }
+        button:active { transform: scale(0.95); opacity: 0.8; }
+        .nav-bar { position: fixed; bottom: 0; width: 100%; background: white; border-top: 1px solid #ddd; height: 80px; z-index: 200; display: flex; align-items: center; padding: 0 10px; box-sizing: border-box; }
+        .nav-left { flex: 1.2; display: flex; height: 100%; }
+        .tab-item { flex: 1; border: none; background: none; font-size: 1.4rem; font-weight: bold; color: #94a3b8; }
+        .tab-item.active { color: var(--primary); border-top: 4px solid var(--primary); background: #f0f9ff; }
+        .nav-right { flex: 1; display: flex; gap: 5px; justify-content: flex-end; }
+        .btn-csv-nav { background: #f8fafc; border: 1px solid #ddd; border-radius: 8px; padding: 10px 8px; font-size: 0.9rem; font-weight: bold; color: #475569; }
+        #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.9rem; z-index: 1000; display: none; pointer-events: none; }
+        .hist-info { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<header id="header-ui">
+    <div class="controls">
+        <select id="filter-cat" class="filter-select" onchange="renderList()"></select>
+        <button class="btn-add" onclick="addItem()">＋ 追加</button>
+    </div>
+    <input type="text" id="search-input" class="search-bar" placeholder="名前検索" oninput="renderList()">
+</header>
+
+<div class="container">
+    <div id="screen-list"></div>
+    <div id="screen-history" class="hidden">
+        <button onclick="showScreen('list')" style="padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #ddd; background:white;">← 戻る</button>
+        <div class="hist-info">
+            <input type="text" id="hist-edit-name" class="item-name" onchange="saveHistEdit()">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span>カテゴリ:</span>
+                <select id="hist-edit-cat" class="filter-select" onchange="saveHistEdit()"></select>
+            </div>
+        </div>
+        <h3 style="border-left: 5px solid var(--primary); padding-left: 10px;">更新履歴</h3>
+        <div id="history-content"></div>
+    </div>
+    <div id="screen-master" class="hidden">
+        <h2 style="border-left: 5px solid var(--primary); padding-left: 10px;">カテゴリ管理</h2>
+        <div id="master-list"></div>
+        <button onclick="addMaster()" class="btn-add" style="width:100%; margin-top:20px; padding:18px;">＋ カテゴリ追加</button>
+    </div>
+</div>
+
+<nav class="nav-bar">
+    <div class="nav-left">
+        <button id="tab-list" class="tab-item active" onclick="showScreen('list')">リスト</button>
+        <button id="tab-master" class="tab-item" onclick="showScreen('master')">カテゴリ</button>
+    </div>
+    <div class="nav-right">
+        <button class="btn-csv-nav" onclick="syncWithSheets()">🔄 同期</button>
+        <button class="btn-csv-nav" onclick="handleImportClick()">📥 読込</button>
+        <button class="btn-csv-nav" onclick="handleExportClick()">📤 出力</button>
+    </div>
+</nav>
+
+<input type="file" id="csv-input" class="hidden" accept=".csv" onchange="processFile(this)">
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyMAv8aSKMEU-1ilRRPzyXaA08ij77jpGLRZivDKp0YcEQQo7a5vxSZtr-3L-Br77pUfA/exec"; // ←ここを書き換えてください
+
+let db, dataList = [], categories = [], currentView = 'list', currentEditIdx = -1;
+
+const request = indexedDB.open("UpdateFinalDB_v110", 1);
+request.onupgradeneeded = (e) => {
+    db = e.target.result;
+    db.createObjectStore("store", { keyPath: "id" });
+};
+request.onsuccess = (e) => { db = e.target.result; loadFromDB(); };
+
+function getToday() { return new Date().toISOString().split('T')[0]; }
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg; t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 2000);
+}
+
+function loadFromDB() {
+    const tx = db.transaction(["store"], "readonly");
+    const s = tx.objectStore("store");
+    s.get("dataList").onsuccess = (e) => { dataList = e.target.result?.value || []; renderList(); };
+    s.get("categories").onsuccess = (e) => { categories = e.target.result?.value || ["食品", "日用品"]; updateFilterUI(); };
+}
+
+function autoSave() {
+    const tx = db.transaction(["store"], "readwrite");
+    const s = tx.objectStore("store");
+    s.put({ id: "dataList", value: dataList });
+    s.put({ id: "categories", value: categories });
+    updateFilterUI();
+}
+
+function updateFilterUI() {
+    const filters = [document.getElementById('filter-cat'), document.getElementById('hist-edit-cat')];
+    filters.forEach(f => {
+        if(!f) return;
+        const cur = f.value;
+        f.innerHTML = f.id === 'filter-cat' ? '<option value="all">すべて表示</option>' : '<option value="">未設定</option>';
+        categories.forEach(c => { if(c.trim()) f.innerHTML += `<option value="${c}">${c}</option>`; });
+        f.value = categories.includes(cur) ? cur : (f.id === 'filter-cat' ? 'all' : '');
+    });
+}
+
+function showScreen(id) {
+    currentView = id;
+    ['list', 'history', 'master'].forEach(s => document.getElementById('screen-'+s).classList.add('hidden'));
+    document.getElementById('header-ui').classList.toggle('hidden', id !== 'list');
+    document.getElementById('screen-' + id).classList.remove('hidden');
+    document.getElementById('tab-list').classList.toggle('active', id === 'list');
+    document.getElementById('tab-master').classList.toggle('active', id === 'master');
+    if(id === 'master') renderMaster();
+    if(id === 'list') renderList();
+}
+
+function addItem() {
+    const f = document.getElementById('filter-cat').value;
+    const cat = (f === 'all') ? "" : f;
+    dataList.unshift({ id: Date.now(), category: cat, name: "", history: [], tempDate: getToday() });
+    renderList(); autoSave(); showToast("アイテムを追加しました");
+}
+
+function doUpdate(idx) {
+    const targetDate = dataList[idx].tempDate || getToday();
+    dataList[idx].history.unshift(targetDate);
+    dataList[idx].history.sort((a, b) => new Date(b) - new Date(a));
+    dataList[idx].tempDate = getToday();
+    renderList(); autoSave(); showToast("履歴を更新しました");
+}
+
+function viewHistory(idx) {
+    currentEditIdx = idx;
+    const item = dataList[idx];
+    document.getElementById('hist-edit-name').value = item.name;
+    document.getElementById('hist-edit-cat').value = item.category;
+    const cont = document.getElementById('history-content');
+    cont.innerHTML = item.history.map((h, i) => `
+        <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #eee; background:white;">
+            <span>${h}</span>
+            <button onclick="deleteHist(${idx}, ${i})" style="color:red; border:none; background:none;">削除</button>
+        </div>
+    `).join('') || "履歴なし";
+    showScreen('history');
+}
+
+function saveHistEdit() {
+    if(currentEditIdx === -1) return;
+    dataList[currentEditIdx].name = document.getElementById('hist-edit-name').value;
+    dataList[currentEditIdx].category = document.getElementById('hist-edit-cat').value;
+    autoSave(); showToast("保存しました");
+}
+
+function deleteHist(itemIdx, histIdx) {
+    dataList[itemIdx].history.splice(histIdx, 1);
+    viewHistory(itemIdx); autoSave(); showToast("履歴を削除しました");
+}
+
+function renderMaster() {
+    const container = document.getElementById('master-list');
+    container.innerHTML = categories.map((c, i) => `
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <input type="text" value="${c}" style="flex:1; padding:12px; border-radius:8px; border:1px solid #ddd;" onchange="categories[${i}]=this.value; autoSave(); showToast('保存しました');">
+            <button onclick="if(confirm('削除しますか？')){categories.splice(${i},1); autoSave(); renderMaster(); showToast('削除しました');}" style="background:var(--danger); color:white; border:none; border-radius:8px; padding:0 15px;">×</button>
+        </div>
+    `).join('');
+}
+
+function addMaster() { categories.push("新カテゴリ"); renderMaster(); autoSave(); showToast("カテゴリ追加"); }
+
+function renderList() {
+    const container = document.getElementById('screen-list');
+    container.innerHTML = '';
+    const filter = document.getElementById('filter-cat').value;
+    const key = document.getElementById('search-input').value.toLowerCase();
+    
+    dataList.forEach((item, originalIdx) => {
+        if(filter !== 'all' && item.category !== filter) return;
+        if(key && !(item.name || "").toLowerCase().includes(key)) return;
+
+        const latestDate = (item.history && item.history.length > 0) ? item.history[0] : "";
+        const calendarValue = latestDate || item.tempDate || getToday();
+
+        let diff = "- ";
+        if(latestDate) {
+            const d1 = new Date(); d1.setHours(0,0,0,0);
+            const d2 = new Date(latestDate); d2.setHours(0,0,0,0);
+            if(!isNaN(d2.getTime())) diff = Math.floor((d1 - d2) / (1000*60*60*24));
+        }
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <input type="text" class="item-name" placeholder="名前入力..." value="${item.name || ''}" onchange="dataList[${originalIdx}].name=this.value; autoSave(); showToast('保存しました');">
+            <div class="row-2">
+                <input type="date" class="item-date" value="${calendarValue}" onchange="dataList[${originalIdx}].tempDate=this.value; autoSave(); renderList();">
+                <span class="item-days">${diff}日</span>
+                <div class="btn-group">
+                    <button class="btn-sm" style="background:#94a3b8" onclick="viewHistory(${originalIdx})">履歴</button>
+                    <button class="btn-sm" style="background:#4cb6f2" onclick="doUpdate(${originalIdx})">更新</button>
+                    <button class="btn-sm" style="background:#f87171" onclick="if(confirm('削除')){dataList.splice(${originalIdx},1); renderList(); autoSave(); showToast('削除');}">×</button>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+// --- スプレッドシート同期機能 ---
+async function syncWithSheets() {
+    if(!GAS_URL || GAS_URL.includes("ここに")) return alert("GASのURLが設定されていません。");
+    showToast("同期中...");
+    try {
+        // 1. クラウドから読み込み
+        const res = await fetch(GAS_URL);
+        const json = await res.json();
+        
+        if(json.dataList) {
+            dataList = json.dataList.map((row, i) => ({
+                id: Date.now() + i,
+                category: row[0] || "",
+                name: row[1] || "",
+                tempDate: getToday(),
+                history: row[2] ? row[2].toString().split('|') : []
+            }));
+            categories = json.categories.map(row => row[0]);
+            autoSave();
+            renderList();
+        }
+
+        // 2. クラウドへ書き出し
+        await fetch(GAS_URL, {
+            method: "POST",
+            body: JSON.stringify({ dataList: dataList, categories: categories })
+        });
+        showToast("クラウド同期完了！");
+    } catch (e) {
+        showToast("同期エラー");
+        console.error(e);
+    }
+}
+
+function handleImportClick() { document.getElementById('csv-input').click(); }
+function processFile(input) {
+    if(!input.files.length) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const lines = e.target.result.split(/\r?\n/);
+        let count = 0;
+        const newList = [];
+        lines.forEach((l, i) => {
+            if(!l.trim()) return;
+            const p = l.split(',');
+            newList.push({
+                id: Date.now() + i, category: p[0] || "", name: p[1] || "",
+                tempDate: getToday(), history: p[2] ? p[2].split('|').filter(d => d) : []
+            });
+            count++;
+        });
+        dataList = [...newList, ...dataList];
+        autoSave(); renderList();
+        showToast(`${count}件取り込みました`);
+    };
+    reader.readAsText(input.files[0], "UTF-8");
+}
+
+function handleExportClick() {
+    let csv = "";
+    dataList.forEach(item => { csv += `${item.category},${item.name},${item.history.join('|')}\n`; });
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const blob = new Blob([bom, csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.download = `backup_${Date.now()}.csv`; a.href = url; a.click();
+    showToast("CSVを出力しました");
+}
+</script>
+</body>
+</html>
