@@ -79,7 +79,7 @@
 <input type="file" id="csv-input" class="hidden" accept=".csv" onchange="processFile(this)">
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzwsrk-b5A7FgQfjGb6jzM5BZXf8_X667dEPKwYo9q5ycAZaCRyoRN6iK8YJqecm2hwvA/exec"; // ← 必ず新しいURLに更新してください
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyAH60T5LlpXB_EDNDVyrcdndvji82QJ5rPFICarB4R4mkmDCNtqZ21xqJ85EOpVKD3PA/exec"; // ← 1箇所だけ書き換え
 
 let db, dataList = [], categories = [], currentView = 'list', currentEditIdx = -1;
 
@@ -90,6 +90,7 @@ request.onupgradeneeded = (e) => {
 };
 request.onsuccess = (e) => { db = e.target.result; loadFromDB(); };
 
+// 日本時間 (JST) 取得
 function getTodayJST() {
     const now = new Date();
     const jstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
@@ -99,7 +100,7 @@ function getTodayJST() {
 function showToast(msg) {
     const t = document.getElementById('toast');
     t.innerText = msg; t.style.display = 'block';
-    setTimeout(() => { t.style.display = 'none'; }, 2500);
+    setTimeout(() => { t.style.display = 'none'; }, 2000);
 }
 
 function loadFromDB() {
@@ -231,44 +232,46 @@ function renderList() {
     });
 }
 
-// --- 同期機能 (CORSリダイレクト対策版) ---
+// --- 同期機能 (保存してから読み込む双方向同期) ---
 async function syncWithSheets() {
     if(!GAS_URL || GAS_URL.includes("ここに")) return alert("GASのURLを設定してください");
-    showToast("通信中...");
+    showToast("クラウドへ保存中...");
     try {
-        // 1. クラウドからデータを取得 (GET)
+        // 1. まず現在のデータをクラウドへ送る (POST)
+        await fetch(GAS_URL, {
+            method: "POST",
+            mode: "no-cors",
+            body: JSON.stringify({ dataList: dataList, categories: categories })
+        });
+
+        // 通信の安定待ち
+        await new Promise(r => setTimeout(r, 500));
+        showToast("最新データを取得中...");
+
+        // 2. クラウドから最新データを読み込む (GET)
         const res = await fetch(GAS_URL, { redirect: "follow" });
-        if (!res.ok) throw new Error("HTTP Error: " + res.status);
         const json = await res.json();
         
         if (json.dataList) {
-            // スプレッドシートの2次元配列をオブジェクトに正しく復元
-            dataList = json.dataList.filter(row => row && row[1]).map((row, i) => ({
+            // スプレッドシートの行列をオブジェクトに変換
+            dataList = json.dataList.filter(row => row[1]).map((row, i) => ({
                 id: Date.now() + i,
                 category: row[0] || "",
                 name: row[1] || "",
                 tempDate: getTodayJST(),
                 history: row[2] ? row[2].toString().split('|').filter(d => d) : []
             }));
-            // カテゴリの復元 (row[0]がカテゴリ名)
-            categories = json.categories.map(row => row[0]).filter(c => c);
+            if (json.categories) {
+                categories = json.categories.map(row => row[0]).filter(c => c);
+            }
             
             autoSave();
             renderList();
+            showToast("同期完了！");
         }
-
-        // 2. 現在のデータをクラウドへ送信 (POST)
-        // ※POSTはレスポンスの中身を確認しなくても、GAS側が正常に動いていればOK
-        await fetch(GAS_URL, {
-            method: "POST",
-            mode: "no-cors", 
-            body: JSON.stringify({ dataList: dataList, categories: categories })
-        });
-        
-        showToast("クラウド同期完了！");
     } catch (e) {
-        showToast("同期失敗：設定を確認してください");
-        console.error("Error details:", e);
+        showToast("同期失敗");
+        console.error(e);
     }
 }
 
