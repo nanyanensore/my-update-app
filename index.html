@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UPDATE - Cloud Sync</title>
+    <title>UPDATE - Cloud Sync JST</title>
     <style>
         :root { --primary: #4cb6f2; --danger: #ef4444; --bg: #f0f4f8; --text: #334155; --success: #22c55e; }
         body { font-family: sans-serif; margin: 0; background: var(--bg); padding-bottom: 90px; color: var(--text); }
@@ -79,7 +79,7 @@
 <input type="file" id="csv-input" class="hidden" accept=".csv" onchange="processFile(this)">
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyMAv8aSKMEU-1ilRRPzyXaA08ij77jpGLRZivDKp0YcEQQo7a5vxSZtr-3L-Br77pUfA/exec"; // ←ここを書き換えてください
+const GAS_URL = "AKfycbwhlCgwE2XZNRYbfPKlqa-An9vuh0RSLI1vbRr4Aj0kfrERU1OQYvExpwK5ySK-7KNa"; // ← 必ず書き換えてください
 
 let db, dataList = [], categories = [], currentView = 'list', currentEditIdx = -1;
 
@@ -90,7 +90,12 @@ request.onupgradeneeded = (e) => {
 };
 request.onsuccess = (e) => { db = e.target.result; loadFromDB(); };
 
-function getToday() { return new Date().toISOString().split('T')[0]; }
+// 【修正】日本時間の今日を取得 (YYYY-MM-DD)
+function getTodayJST() {
+    const now = new Date();
+    const jstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+    return jstNow.toISOString().split('T')[0];
+}
 
 function showToast(msg) {
     const t = document.getElementById('toast');
@@ -119,7 +124,7 @@ function updateFilterUI() {
         if(!f) return;
         const cur = f.value;
         f.innerHTML = f.id === 'filter-cat' ? '<option value="all">すべて表示</option>' : '<option value="">未設定</option>';
-        categories.forEach(c => { if(c.trim()) f.innerHTML += `<option value="${c}">${c}</option>`; });
+        categories.forEach(c => { if(c && c.trim()) f.innerHTML += `<option value="${c}">${c}</option>`; });
         f.value = categories.includes(cur) ? cur : (f.id === 'filter-cat' ? 'all' : '');
     });
 }
@@ -138,15 +143,15 @@ function showScreen(id) {
 function addItem() {
     const f = document.getElementById('filter-cat').value;
     const cat = (f === 'all') ? "" : f;
-    dataList.unshift({ id: Date.now(), category: cat, name: "", history: [], tempDate: getToday() });
+    dataList.unshift({ id: Date.now(), category: cat, name: "", history: [], tempDate: getTodayJST() });
     renderList(); autoSave(); showToast("アイテムを追加しました");
 }
 
 function doUpdate(idx) {
-    const targetDate = dataList[idx].tempDate || getToday();
+    const targetDate = dataList[idx].tempDate || getTodayJST();
     dataList[idx].history.unshift(targetDate);
     dataList[idx].history.sort((a, b) => new Date(b) - new Date(a));
-    dataList[idx].tempDate = getToday();
+    dataList[idx].tempDate = getTodayJST();
     renderList(); autoSave(); showToast("履歴を更新しました");
 }
 
@@ -199,13 +204,13 @@ function renderList() {
         if(filter !== 'all' && item.category !== filter) return;
         if(key && !(item.name || "").toLowerCase().includes(key)) return;
 
-        const latestDate = (item.history && item.history.length > 0) ? item.history[0] : "";
-        const calendarValue = latestDate || item.tempDate || getToday();
+        const latestHistoryDate = (item.history && item.history.length > 0) ? item.history[0] : "";
+        const calendarValue = latestHistoryHistoryDate || item.tempDate || getTodayJST();
 
         let diff = "- ";
-        if(latestDate) {
+        if(latestHistoryDate) {
             const d1 = new Date(); d1.setHours(0,0,0,0);
-            const d2 = new Date(latestDate); d2.setHours(0,0,0,0);
+            const d2 = new Date(latestHistoryDate); d2.setHours(0,0,0,0);
             if(!isNaN(d2.getTime())) diff = Math.floor((d1 - d2) / (1000*60*60*24));
         }
 
@@ -227,24 +232,27 @@ function renderList() {
     });
 }
 
-// --- スプレッドシート同期機能 ---
+// --- スプレッドシート同期機能 (日本時間 & 多行対応) ---
 async function syncWithSheets() {
-    if(!GAS_URL || GAS_URL.includes("ここに")) return alert("GASのURLが設定されていません。");
-    showToast("同期中...");
+    if(!GAS_URL || GAS_URL.includes("ここに")) return alert("GASのURLを設定してください。");
+    showToast("クラウドと同期中...");
     try {
-        // 1. クラウドから読み込み
-        const res = await fetch(GAS_URL);
+        // 1. クラウドから取得
+        const res = await fetch(GAS_URL, { redirect: "follow" });
         const json = await res.json();
         
         if(json.dataList) {
-            dataList = json.dataList.map((row, i) => ({
+            // 【重要】2次元配列をオブジェクトに変換
+            dataList = json.dataList.filter(row => row[1]).map((row, i) => ({
                 id: Date.now() + i,
                 category: row[0] || "",
                 name: row[1] || "",
-                tempDate: getToday(),
-                history: row[2] ? row[2].toString().split('|') : []
+                tempDate: getTodayJST(),
+                history: row[2] ? row[2].toString().split('|').filter(d => d) : []
             }));
-            categories = json.categories.map(row => row[0]);
+            // 【重要】カテゴリの復元 (row[0]が名前)
+            categories = json.categories.map(row => row[0]).filter(c => c);
+            
             autoSave();
             renderList();
         }
@@ -252,12 +260,14 @@ async function syncWithSheets() {
         // 2. クラウドへ書き出し
         await fetch(GAS_URL, {
             method: "POST",
-            body: JSON.stringify({ dataList: dataList, categories: categories })
+            body: JSON.stringify({ dataList: dataList, categories: categories }),
+            redirect: "follow"
         });
-        showToast("クラウド同期完了！");
+        
+        showToast("同期が成功しました！");
     } catch (e) {
-        showToast("同期エラー");
-        console.error(e);
+        showToast("同期エラーが発生しました");
+        console.error("Sync Error:", e);
     }
 }
 
@@ -274,7 +284,7 @@ function processFile(input) {
             const p = l.split(',');
             newList.push({
                 id: Date.now() + i, category: p[0] || "", name: p[1] || "",
-                tempDate: getToday(), history: p[2] ? p[2].split('|').filter(d => d) : []
+                tempDate: getTodayJST(), history: p[2] ? p[2].split('|').filter(d => d) : []
             });
             count++;
         });
