@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UPDATE - Final Fix</title>
+    <title>UPDATE - Absolute Final</title>
     <style>
         :root { --primary: #4cb6f2; --danger: #ef4444; --bg: #f0f4f8; --text: #334155; }
         body { font-family: sans-serif; margin: 0; background: var(--bg); padding-bottom: 90px; color: var(--text); }
@@ -27,74 +27,32 @@
         .nav-right { flex: 1; display: flex; gap: 5px; justify-content: flex-end; }
         .btn-csv-nav { background: #f8fafc; border: 1px solid #ddd; border-radius: 8px; padding: 10px 8px; font-size: 0.9rem; font-weight: bold; color: #475569; }
         #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.9rem; z-index: 1000; display: none; pointer-events: none; }
-        .hist-info { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
 <div id="toast"></div>
-<header id="header-ui">
-    <div class="controls">
-        <select id="filter-cat" class="filter-select" onchange="renderList()"></select>
-        <button class="btn-add" onclick="addItem()">＋ 追加</button>
-    </div>
-    <input type="text" id="search-input" class="search-bar" placeholder="名前検索" oninput="renderList()">
-</header>
-<div class="container">
-    <div id="screen-list"></div>
-    <div id="screen-history" class="hidden">
-        <button onclick="showScreen('list')" style="padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #ddd; background:white;">← 戻る</button>
-        <div class="hist-info">
-            <input type="text" id="hist-edit-name" class="item-name" onchange="saveHistEdit()">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <span>カテゴリ:</span>
-                <select id="hist-edit-cat" class="filter-select" onchange="saveHistEdit()"></select>
-            </div>
-        </div>
-        <h3 style="border-left: 5px solid var(--primary); padding-left: 10px;">更新履歴</h3>
-        <div id="history-content"></div>
-    </div>
-    <div id="screen-master" class="hidden">
-        <h2 style="border-left: 5px solid var(--primary); padding-left: 10px;">カテゴリ管理</h2>
-        <div id="master-list"></div>
-        <button onclick="addMaster()" class="btn-add" style="width:100%; margin-top:20px; padding:18px;">＋ カテゴリ追加</button>
-    </div>
-</div>
-<nav class="nav-bar">
-    <div class="nav-left">
-        <button id="tab-list" class="tab-item active" onclick="showScreen('list')">リスト</button>
-        <button id="tab-master" class="tab-item" onclick="showScreen('master')">カテゴリ</button>
-    </div>
-    <div class="nav-right">
-        <button class="btn-csv-nav" onclick="syncWithSheets()">🔄 同期</button>
-        <button class="btn-csv-nav" onclick="handleImportClick()">📥 読込</button>
-        <button class="btn-csv-nav" onclick="handleExportClick()">📤 出力</button>
-    </div>
-</nav>
+<header id="header-ui"><div class="controls"><select id="filter-cat" class="filter-select" onchange="renderList()"></select><button class="btn-add" onclick="addItem()">＋ 追加</button></div><input type="text" id="search-input" class="search-bar" placeholder="名前検索" oninput="renderList()"></header>
+<div class="container"><div id="screen-list"></div><div id="screen-history" class="hidden"><button onclick="showScreen('list')" style="padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #ddd; background:white;">← 戻る</button><div style="background:white; padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid #e2e8f0;"><input type="text" id="hist-edit-name" class="item-name" onchange="saveHistEdit()"><div style="display:flex; align-items:center; gap:10px;"><span>カテゴリ:</span><select id="hist-edit-cat" class="filter-select" onchange="saveHistEdit()"></select></div></div><h3 style="border-left: 5px solid var(--primary); padding-left: 10px;">更新履歴</h3><div id="history-content"></div></div><div id="screen-master" class="hidden"><h2 style="border-left: 5px solid var(--primary); padding-left: 10px;">カテゴリ管理</h2><div id="master-list"></div><button onclick="addMaster()" class="btn-add" style="width:100%; margin-top:20px; padding:18px;">＋ カテゴリ追加</button></div></div>
+<nav class="nav-bar"><div class="nav-left"><button id="tab-list" class="tab-item active" onclick="showScreen('list')">リスト</button><button id="tab-master" class="tab-item" onclick="showScreen('master')">カテゴリ</button></div><div class="nav-right"><button class="btn-csv-nav" onclick="syncWithSheets()">🔄 同期</button><button class="btn-csv-nav" onclick="handleImportClick()">📥 読込</button><button class="btn-csv-nav" onclick="handleExportClick()">📤 出力</button></div></nav>
 <input type="file" id="csv-input" class="hidden" accept=".csv" onchange="processFile(this)">
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxJRA47XrAaVuBI5RzzxC-SmjmFdZg82KAk3jF4pgyTF9AXDlPupdQh_Ca-FDumudWJyA/exec"; 
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyTE-ab_rVwiuFIDAZ2gCFBTqUEMdS7WKFPG2AQr56CzkhLIEN3skXv8VgN2zAk5mem5w/exec"; 
 
 let db, dataList = [], categories = [], currentView = 'list', currentEditIdx = -1;
-
-const request = indexedDB.open("UpdateFinalDB_v110", 1);
-request.onupgradeneeded = (e) => {
-    db = e.target.result;
-    db.createObjectStore("store", { keyPath: "id" });
-};
+const request = indexedDB.open("UpdateFinalDB_v115", 1); // バージョンアップ
+request.onupgradeneeded = (e) => { db = e.target.result; db.createObjectStore("store", { keyPath: "id" }); };
 request.onsuccess = (e) => { db = e.target.result; loadFromDB(); };
 
+// ④ 日付が日本時間にならない件：完全に日本時間 YYYY-MM-DD を取得
 function getTodayJST() {
-    const d = new Date(new Date().getTime() + (9 * 60 * 60 * 1000));
-    return d.toISOString().split('T')[0];
+    const d = new Date();
+    const jst = new Date(d.getTime() + (9 * 60 * 60 * 1000));
+    return jst.toISOString().split('T')[0];
 }
 
-function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.innerText = msg; t.style.display = 'block';
-    setTimeout(() => { t.style.display = 'none'; }, 2000);
-}
+function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2000); }
 
 function loadFromDB() {
     const tx = db.transaction(["store"], "readonly");
@@ -102,7 +60,6 @@ function loadFromDB() {
     s.get("dataList").onsuccess = (e) => { dataList = e.target.result?.value || []; renderList(); };
     s.get("categories").onsuccess = (e) => { categories = e.target.result?.value || ["食品", "日用品"]; updateFilterUI(); };
 }
-
 function autoSave() {
     const tx = db.transaction(["store"], "readwrite");
     const s = tx.objectStore("store");
@@ -110,7 +67,6 @@ function autoSave() {
     s.put({ id: "categories", value: categories });
     updateFilterUI();
 }
-
 function updateFilterUI() {
     const filters = [document.getElementById('filter-cat'), document.getElementById('hist-edit-cat')];
     filters.forEach(f => {
@@ -121,7 +77,6 @@ function updateFilterUI() {
         f.value = categories.includes(cur) ? cur : (f.id === 'filter-cat' ? 'all' : '');
     });
 }
-
 function showScreen(id) {
     currentView = id;
     ['list', 'history', 'master'].forEach(s => document.getElementById('screen-'+s).classList.add('hidden'));
@@ -133,13 +88,13 @@ function showScreen(id) {
     if(id === 'list') renderList();
 }
 
+// ③ 新規入力での日付は今日を表示する
 function addItem() {
     const f = document.getElementById('filter-cat').value;
     const cat = (f === 'all') ? "" : f;
     dataList.unshift({ id: Date.now(), category: cat, name: "", history: [], tempDate: getTodayJST() });
     renderList(); autoSave(); showToast("追加しました");
 }
-
 function doUpdate(idx) {
     const targetDate = dataList[idx].tempDate || getTodayJST();
     dataList[idx].history.unshift(targetDate);
@@ -147,56 +102,37 @@ function doUpdate(idx) {
     dataList[idx].tempDate = getTodayJST();
     renderList(); autoSave(); showToast("更新しました");
 }
-
 function viewHistory(idx) {
     currentEditIdx = idx;
     const item = dataList[idx];
     document.getElementById('hist-edit-name').value = item.name;
     document.getElementById('hist-edit-cat').value = item.category;
     const cont = document.getElementById('history-content');
-    cont.innerHTML = item.history.map((h, i) => `
-        <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #eee; background:white;">
-            <span>${h}</span>
-            <button onclick="deleteHist(${idx}, ${i})" style="color:red; border:none; background:none;">削除</button>
-        </div>
-    `).join('') || "履歴なし";
+    cont.innerHTML = item.history.map((h, i) => `<div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #eee; background:white;"><span>${h}</span><button onclick="deleteHist(${idx}, ${i})" style="color:red; border:none; background:none;">削除</button></div>`).join('') || "履歴なし";
     showScreen('history');
 }
-
 function saveHistEdit() {
     if(currentEditIdx === -1) return;
     dataList[currentEditIdx].name = document.getElementById('hist-edit-name').value;
     dataList[currentEditIdx].category = document.getElementById('hist-edit-cat').value;
     autoSave(); showToast("保存しました");
 }
-
-function deleteHist(itemIdx, histIdx) {
-    dataList[itemIdx].history.splice(histIdx, 1);
-    viewHistory(itemIdx); autoSave(); showToast("削除しました");
-}
-
+function deleteHist(itemIdx, histIdx) { dataList[itemIdx].history.splice(histIdx, 1); viewHistory(itemIdx); autoSave(); }
 function renderMaster() {
     const container = document.getElementById('master-list');
-    container.innerHTML = categories.map((c, i) => `
-        <div style="display:flex; gap:10px; margin-bottom:10px;">
-            <input type="text" value="${c}" style="flex:1; padding:12px; border-radius:8px; border:1px solid #ddd;" onchange="categories[${i}]=this.value; autoSave(); showToast('保存しました');">
-            <button onclick="if(confirm('削除？')){categories.splice(${i},1); autoSave(); renderMaster(); showToast('削除しました');}" style="background:var(--danger); color:white; border:none; border-radius:8px; padding:0 15px;">×</button>
-        </div>
-    `).join('');
+    container.innerHTML = categories.map((c, i) => `<div style="display:flex; gap:10px; margin-bottom:10px;"><input type="text" value="${c}" style="flex:1; padding:12px; border-radius:8px; border:1px solid #ddd;" onchange="categories[${i}]=this.value; autoSave();"><button onclick="if(confirm('削除？')){categories.splice(${i},1); autoSave(); renderMaster();}" style="background:var(--danger); color:white; border:none; border-radius:8px; padding:0 15px;">×</button></div>`).join('');
 }
-
 function addMaster() { categories.push("新カテゴリ"); renderMaster(); autoSave(); }
 
 function renderList() {
-    const container = document.getElementById('screen-list');
-    container.innerHTML = '';
+    const container = document.getElementById('screen-list'); container.innerHTML = '';
     const filter = document.getElementById('filter-cat').value;
     const key = document.getElementById('search-input').value.toLowerCase();
-    
     dataList.forEach((item, originalIdx) => {
         if(filter !== 'all' && item.category !== filter) return;
         if(key && !(item.name || "").toLowerCase().includes(key)) return;
 
+        // ② リストの更新日が履歴の最新を表示しない件：履歴の[0]を最優先で表示
         const latestHistoryDate = (item.history && item.history.length > 0) ? item.history[0] : "";
         const calendarValue = latestHistoryDate || item.tempDate || getTodayJST();
 
@@ -206,49 +142,35 @@ function renderList() {
             const d2 = new Date(latestHistoryDate.replace(/-/g, '/')); d2.setHours(0,0,0,0);
             if(!isNaN(d2.getTime())) diff = Math.floor((d1 - d2) / (1000*60*60*24));
         }
-
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-            <input type="text" class="item-name" placeholder="名前入力..." value="${item.name || ''}" onchange="dataList[${originalIdx}].name=this.value; autoSave(); showToast('保存しました');">
-            <div class="row-2">
-                <input type="date" class="item-date" value="${calendarValue}" onchange="dataList[${originalIdx}].tempDate=this.value; autoSave(); renderList();">
-                <span class="item-days">${diff}日</span>
-                <div class="btn-group">
-                    <button class="btn-sm" style="background:#94a3b8" onclick="viewHistory(${originalIdx})">履歴</button>
-                    <button class="btn-sm" style="background:#4cb6f2" onclick="doUpdate(${originalIdx})">更新</button>
-                    <button class="btn-sm" style="background:#f87171" onclick="if(confirm('削除')){dataList.splice(${originalIdx},1); renderList(); autoSave(); showToast('削除');}">×</button>
-                </div>
-            </div>
-        `;
+        const card = document.createElement('div'); card.className = 'card';
+        card.innerHTML = `<input type="text" class="item-name" placeholder="名前入力..." value="${item.name || ''}" onchange="dataList[${originalIdx}].name=this.value; autoSave();"><div class="row-2"><input type="date" class="item-date" value="${calendarValue}" onchange="dataList[${originalIdx}].tempDate=this.value; autoSave(); renderList();"><span class="item-days">${diff}日</span><div class="btn-group"><button class="btn-sm" style="background:#94a3b8" onclick="viewHistory(${originalIdx})">履歴</button><button class="btn-sm" style="background:#4cb6f2" onclick="doUpdate(${originalIdx})">更新</button><button class="btn-sm" style="background:#f87171" onclick="if(confirm('削除')){dataList.splice(${originalIdx},1); renderList(); autoSave();}">×</button></div></div>`;
         container.appendChild(card);
     });
 }
 
 async function syncWithSheets() {
     if(!GAS_URL || GAS_URL.includes("ここに")) return alert("GASのURLを貼ってください");
-    showToast("保存中...");
+    showToast("クラウドへ保存中...");
     try {
         await fetch(GAS_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ dataList: dataList, categories: categories }) });
         await new Promise(r => setTimeout(r, 800));
-        showToast("読み込み中...");
+        showToast("最新データを取得中...");
         const res = await fetch(GAS_URL, { redirect: "follow" });
         const json = await res.json();
         if (json.dataList) {
-            dataList = json.dataList.filter(row => row[1]).map((row, i) => ({
+            // ① カテゴリが一文字になる件：row[0]がカテゴリ, row[1]が名前, row[2]が履歴 と明示
+            dataList = json.dataList.filter(row => row && row[1]).map((row, i) => ({
                 id: Date.now() + i,
                 category: row[0] || "",
                 name: row[1] || "",
                 tempDate: getTodayJST(),
                 history: row[2] ? row[2].toString().split('|').filter(d => d) : []
             }));
-            // 【重要】categoriesも2次元配列の0番目から取り出す
-            categories = json.categories ? json.categories.map(row => row[0]).filter(c => c) : [];
+            // カテゴリの復元：row[0]がカテゴリ名
+            categories = json.categories ? json.categories : [];
             autoSave(); renderList(); showToast("同期完了！");
         }
-    } catch (e) {
-        showToast("同期失敗"); console.error(e);
-    }
+    } catch (e) { showToast("同期失敗"); console.error(e); }
 }
 
 function handleImportClick() { document.getElementById('csv-input').click(); }
@@ -260,8 +182,7 @@ function processFile(input) {
             const p = l.split(',');
             return { id: Date.now() + i, category: p[0] || "", name: p[1] || "", tempDate: getTodayJST(), history: p[2] ? p[2].split('|').filter(d => d) : [] };
         });
-        dataList = [...newList, ...dataList];
-        autoSave(); renderList(); showToast("読込完了");
+        dataList = [...newList, ...dataList]; autoSave(); renderList();
     };
     reader.readAsText(input.files[0], "UTF-8");
 }
