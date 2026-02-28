@@ -1,196 +1,978 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UPDATE - Absolute Final</title>
-    <style>
-        :root { --primary: #4cb6f2; --danger: #ef4444; --bg: #f0f4f8; --text: #334155; }
-        body { font-family: sans-serif; margin: 0; background: var(--bg); padding-bottom: 90px; color: var(--text); }
-        header { background: white; padding: 12px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .controls { display: flex; gap: 8px; margin-bottom: 10px; }
-        .filter-select { flex: 2; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 1.1rem; }
-        .btn-add { flex: 1; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1rem; }
-        .search-bar { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 1.1rem; box-sizing: border-box; }
-        .container { padding: 10px; }
-        .card { background: white; border-radius: 12px; padding: 14px; margin-bottom: 10px; border: 1px solid #e2e8f0; }
-        .item-name { width: 100%; border: none; border-bottom: 1px solid #eee; font-size: 1.2rem; font-weight: bold; padding: 5px 0; outline: none; margin-bottom: 10px; }
-        .row-2 { display: flex; align-items: center; justify-content: space-between; gap: 5px; }
-        .item-date { width: 145px; border: 1px solid #ddd; border-radius: 6px; padding: 8px; font-size: 1rem; text-align: center; font-family: monospace; }
-        .item-days { font-size: 0.9rem; background: #eee; padding: 6px 8px; border-radius: 6px; font-weight: bold; min-width: 45px; text-align: center; }
-        .btn-sm { border: none; border-radius: 6px; padding: 10px 12px; color: white; font-weight: bold; font-size: 0.9rem; }
-        button:active { transform: scale(0.95); opacity: 0.8; }
-        .nav-bar { position: fixed; bottom: 0; width: 100%; background: white; border-top: 1px solid #ddd; height: 80px; z-index: 200; display: flex; align-items: center; padding: 0 10px; box-sizing: border-box; }
-        .nav-left { flex: 1.2; display: flex; height: 100%; }
-        .tab-item { flex: 1; border: none; background: none; font-size: 1.4rem; font-weight: bold; color: #94a3b8; }
-        .tab-item.active { color: var(--primary); border-top: 4px solid var(--primary); background: #f0f9ff; }
-        .nav-right { flex: 1; display: flex; gap: 5px; justify-content: flex-end; }
-        .btn-csv-nav { background: #f8fafc; border: 1px solid #ddd; border-radius: 8px; padding: 10px 8px; font-size: 0.9rem; font-weight: bold; color: #475569; }
-        #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.9rem; z-index: 1000; display: none; pointer-events: none; }
-        .hidden { display: none; }
-    </style>
+<meta charset="UTF-8">
+<title>UPDATE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root {
+  --primary: #4cb6f2;
+  --bg: #f7fbff;
+  --card-bg: #ffffff;
+  --text: #333;
+  --muted: #888;
+  --border: #d7e4f2;
+  --danger: #ff8b94;
+  --success: #9be7a5;
+  --warning: #ffd59e;
+  --info: #a5d8ff;
+  --nav-bg: #ffffff;
+  --shadow-soft: 0 2px 6px rgba(0,0,0,0.08);
+  --radius: 10px;
+  --transition-fast: 0.15s ease;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  z-index: 10;
+}
+main {
+  padding: 64px 12px 80px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--nav-bg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 10;
+}
+.bottom-nav button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  padding: 4px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.bottom-nav button span {
+  font-size: 11px;
+}
+.bottom-nav button.nav-tab {
+  border-right: 1px solid var(--border);
+}
+.bottom-nav button.nav-action {
+  font-weight: 600;
+}
+.bottom-nav button.nav-tab.active {
+  background: var(--primary);
+  color: #fff;
+}
+.bottom-nav button.nav-tab.active span {
+  color: #fff;
+}
+.bottom-nav button.nav-action.read {
+  background: #ffe6f0;
+  color: #d94f8c;
+}
+.bottom-nav button.nav-action.save {
+  background: #e6fff2;
+  color: #2e8b57;
+}
+.bottom-nav button.nav-action.read,
+.bottom-nav button.nav-action.save {
+  margin: 6px 4px;
+  border-radius: 999px;
+  box-shadow: var(--shadow-soft);
+}
+button {
+  font-family: inherit;
+}
+button:active {
+  transform: scale(0.96);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2) inset;
+}
+.btn {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast);
+  box-shadow: var(--shadow-soft);
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-success { background: var(--success); color: #225c2f; }
+.btn-danger { background: var(--danger); color: #6b1b23; }
+.btn-info { background: var(--info); color: #1b4f72; }
+.btn-warning { background: var(--warning); color: #7a4b00; }
+.btn-ghost {
+  background: transparent;
+  border-radius: 6px;
+  box-shadow: none;
+  padding: 4px 8px;
+}
+.btn-ghost:active {
+  background: rgba(0,0,0,0.05);
+  box-shadow: none;
+}
+.section {
+  display: none;
+}
+.section.active {
+  display: block;
+}
+.toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.toolbar input[type="text"] {
+  flex: 1;
+}
+.toolbar select {
+  min-width: 120px;
+}
+input[type="text"], input[type="date"], select {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  background: #fff;
+  transition: border var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+input[type="text"]:focus,
+input[type="date"]:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(76,182,242,0.25);
+}
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.card-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.card-row.top .name {
+  flex: 2;
+}
+.card-row.top .cat {
+  flex: 1;
+}
+.card-row.bottom .date {
+  flex: 1.2;
+}
+.card-row.bottom .elapsed {
+  width: 70px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.card-row.bottom .buttons {
+  display: flex;
+  gap: 4px;
+}
+.badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: #e3f4ff;
+  color: #1b4f72;
+}
+.empty-message {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 20px;
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+.modal-backdrop.active {
+  display: flex;
+}
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.modal-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.modal-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  font-size: 13px;
+}
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.history-item:last-child {
+  border-bottom: none;
+}
+.toast {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 30;
+}
+.toast.show {
+  opacity: 0.9;
+}
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.category-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.category-row input[type="text"] {
+  flex: 1;
+}
+.pseudo-placeholder {
+  color: var(--muted);
+}
+.pseudo-placeholder[data-empty="false"] {
+  color: var(--text);
+}
+@media (min-width: 768px) {
+  main {
+    padding: 72px 16px 90px;
+  }
+}
+</style>
 </head>
 <body>
-<div id="toast"></div>
-<header id="header-ui"><div class="controls"><select id="filter-cat" class="filter-select" onchange="renderList()"></select><button class="btn-add" onclick="addItem()">＋ 追加</button></div><input type="text" id="search-input" class="search-bar" placeholder="名前検索" oninput="renderList()"></header>
-<div class="container"><div id="screen-list"></div><div id="screen-history" class="hidden"><button onclick="showScreen('list')" style="padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #ddd; background:white;">← 戻る</button><div style="background:white; padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid #e2e8f0;"><input type="text" id="hist-edit-name" class="item-name" onchange="saveHistEdit()"><div style="display:flex; align-items:center; gap:10px;"><span>カテゴリ:</span><select id="hist-edit-cat" class="filter-select" onchange="saveHistEdit()"></select></div></div><h3 style="border-left: 5px solid var(--primary); padding-left: 10px;">更新履歴</h3><div id="history-content"></div></div><div id="screen-master" class="hidden"><h2 style="border-left: 5px solid var(--primary); padding-left: 10px;">カテゴリ管理</h2><div id="master-list"></div><button onclick="addMaster()" class="btn-add" style="width:100%; margin-top:20px; padding:18px;">＋ カテゴリ追加</button></div></div>
-<nav class="nav-bar"><div class="nav-left"><button id="tab-list" class="tab-item active" onclick="showScreen('list')">リスト</button><button id="tab-master" class="tab-item" onclick="showScreen('master')">カテゴリ</button></div><div class="nav-right"><button class="btn-csv-nav" onclick="syncWithSheets()">🔄 同期</button><button class="btn-csv-nav" onclick="handleImportClick()">📥 読込</button><button class="btn-csv-nav" onclick="handleExportClick()">📤 出力</button></div></nav>
-<input type="file" id="csv-input" class="hidden" accept=".csv" onchange="processFile(this)">
+<header>UPDATE</header>
+
+<main>
+  <!-- リスト画面 -->
+  <section id="list-section" class="section active">
+    <div class="toolbar">
+      <input type="text" id="search-input" placeholder="名前で検索">
+      <select id="filter-category"></select>
+      <button class="btn btn-primary" id="add-item-btn">+追加</button>
+    </div>
+    <div id="list-container"></div>
+    <div id="list-empty" class="empty-message" style="display:none;">アイテムがありません。「+追加」から作成してください。</div>
+  </section>
+
+  <!-- カテゴリ管理画面 -->
+  <section id="category-section" class="section">
+    <div class="toolbar">
+      <button class="btn btn-info" id="add-category-btn">+カテゴリ追加</button>
+    </div>
+    <div class="category-list" id="category-list"></div>
+    <div id="category-empty" class="empty-message" style="display:none;">カテゴリがありません。「+カテゴリ追加」から作成してください。</div>
+  </section>
+</main>
+
+<!-- 履歴モーダル -->
+<div class="modal-backdrop" id="history-modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div id="history-item-name" style="font-weight:600;font-size:14px;"></div>
+        <div style="margin-top:4px;">
+          <span class="badge">カテゴリ</span>
+        </div>
+      </div>
+      <button class="btn-ghost" id="history-close-btn">✕</button>
+    </div>
+    <div style="margin-bottom:8px;">
+      <select id="history-category-select"></select>
+    </div>
+    <div class="modal-body" id="history-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">更新しました</div>
+
+<!-- 下部ナビ -->
+<div class="bottom-nav">
+  <button class="nav-tab active" id="tab-list">
+    <strong>リスト</strong>
+    <span>Items</span>
+  </button>
+  <button class="nav-tab" id="tab-category">
+    <strong>カテゴリ</strong>
+    <span>Categories</span>
+  </button>
+  <button class="nav-action read" id="read-btn">
+    <strong>読込</strong>
+    <span>CSV</span>
+  </button>
+  <button class="nav-action save" id="save-btn">
+    <strong>保存</strong>
+    <span>CSV</span>
+  </button>
+</div>
+
+<input type="file" id="file-input" accept=".csv" style="display:none;">
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyTE-ab_rVwiuFIDAZ2gCFBTqUEMdS7WKFPG2AQr56CzkhLIEN3skXv8VgN2zAk5mem5w/exec"; 
+/* ====== データ構造 ======
+datalist.csv:
+id,name,category,currentDate,historyDates
+historyDates は "YYYY-MM-DD|YYYY-MM-DD|..." のような '|' 区切り
 
-let db, dataList = [], categories = [], currentView = 'list', currentEditIdx = -1;
-const request = indexedDB.open("UpdateFinalDB_v115", 1); // バージョンアップ
-request.onupgradeneeded = (e) => { db = e.target.result; db.createObjectStore("store", { keyPath: "id" }); };
-request.onsuccess = (e) => { db = e.target.result; loadFromDB(); };
+categories.csv:
+name
+(カテゴリなし) も1行として保持
+========================= */
 
-// ④ 日付が日本時間にならない件：完全に日本時間 YYYY-MM-DD を取得
-function getTodayJST() {
-    const d = new Date();
-    const jst = new Date(d.getTime() + (9 * 60 * 60 * 1000));
-    return jst.toISOString().split('T')[0];
+let items = []; // {id, name, category, currentDate, history:[]}
+let categories = ["(カテゴリなし)"];
+let activeTab = "list";
+let placeholderState = new WeakMap(); // input -> {initial, touched, lastValue}
+let toastTimer = null;
+let currentHistoryItemId = null;
+
+/* ユーティリティ */
+function uuid() {
+  return "id-" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+function todayStr() {
+  const d = new Date();
+  const m = ("0" + (d.getMonth() + 1)).slice(-2);
+  const day = ("0" + d.getDate()).slice(-2);
+  return d.getFullYear() + "-" + m + "-" + day;
+}
+function diffDays(dateStr) {
+  if (!dateStr) return "";
+  const t = new Date(dateStr);
+  if (isNaN(t.getTime())) return "";
+  const now = new Date();
+  const diff = Math.floor((now - t) / (1000 * 60 * 60 * 24));
+  return diff;
+}
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.classList.add("show");
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("show"), 1000);
+}
+function setupPseudoPlaceholder(input, initialText) {
+  placeholderState.set(input, {
+    initial: initialText,
+    touched: false,
+    lastValue: initialText
+  });
+  input.value = initialText;
+  input.classList.add("pseudo-placeholder");
+  input.dataset.empty = "true";
+  input.addEventListener("focus", () => {
+    const st = placeholderState.get(input);
+    if (!st.touched) {
+      input.value = "";
+      input.dataset.empty = "true";
+      st.touched = true;
+    }
+  });
+  input.addEventListener("blur", () => {
+    const st = placeholderState.get(input);
+    if (!input.value.trim()) {
+      // 空文字を防ぐ: 初期文字に戻す
+      input.value = st.initial;
+      input.dataset.empty = "true";
+      st.lastValue = st.initial;
+    } else {
+      st.lastValue = input.value;
+      input.dataset.empty = "false";
+    }
+  });
+  input.addEventListener("input", () => {
+    const st = placeholderState.get(input);
+    if (input.value.trim()) {
+      input.dataset.empty = "false";
+      st.lastValue = input.value;
+    } else {
+      input.dataset.empty = "true";
+    }
+  });
 }
 
-function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 2000); }
+/* ===== タブ切り替え ===== */
+const listSection = document.getElementById("list-section");
+const categorySection = document.getElementById("category-section");
+document.getElementById("tab-list").addEventListener("click", () => {
+  activeTab = "list";
+  listSection.classList.add("active");
+  categorySection.classList.remove("active");
+  document.getElementById("tab-list").classList.add("active");
+  document.getElementById("tab-category").classList.remove("active");
+  renderAll();
+});
+document.getElementById("tab-category").addEventListener("click", () => {
+  activeTab = "category";
+  listSection.classList.remove("active");
+  categorySection.classList.add("active");
+  document.getElementById("tab-list").classList.remove("active");
+  document.getElementById("tab-category").classList.add("active");
+  renderAll();
+});
 
-function loadFromDB() {
-    const tx = db.transaction(["store"], "readonly");
-    const s = tx.objectStore("store");
-    s.get("dataList").onsuccess = (e) => { dataList = e.target.result?.value || []; renderList(); };
-    s.get("categories").onsuccess = (e) => { categories = e.target.result?.value || ["食品", "日用品"]; updateFilterUI(); };
+/* ===== CSV 読込/保存 ===== */
+const fileInput = document.getElementById("file-input");
+document.getElementById("read-btn").addEventListener("click", () => {
+  fileInput.value = "";
+  fileInput.click();
+});
+fileInput.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = reader.result;
+    if (activeTab === "list") {
+      loadItemsFromCSV(text);
+    } else {
+      loadCategoriesFromCSV(text);
+    }
+    renderAll();
+  };
+  reader.readAsText(file, "utf-8");
+});
+
+document.getElementById("save-btn").addEventListener("click", () => {
+  const confirmMsg = activeTab === "list"
+    ? "datalist.csv に上書き保存しますか？"
+    : "categories.csv に上書き保存しますか？";
+  if (!confirm(confirmMsg)) return;
+  let csv = "";
+  let filename = "";
+  if (activeTab === "list") {
+    csv = itemsToCSV();
+    filename = "datalist.csv";
+  } else {
+    csv = categoriesToCSV();
+    filename = "categories.csv";
+  }
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+/* ===== CSV パース/生成 ===== */
+function loadItemsFromCSV(text) {
+  items = [];
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+  if (lines.length === 0) return;
+  const header = lines[0].split(",");
+  const idx = {
+    id: header.indexOf("id"),
+    name: header.indexOf("name"),
+    category: header.indexOf("category"),
+    currentDate: header.indexOf("currentDate"),
+    historyDates: header.indexOf("historyDates")
+  };
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(",");
+    if (!cols.length) continue;
+    const id = idx.id >= 0 ? cols[idx.id] : uuid();
+    const name = idx.name >= 0 ? cols[idx.name] : "";
+    const category = idx.category >= 0 ? cols[idx.category] || "(カテゴリなし)" : "(カテゴリなし)";
+    const currentDate = idx.currentDate >= 0 ? cols[idx.currentDate] : "";
+    const historyStr = idx.historyDates >= 0 ? cols[idx.historyDates] : "";
+    const history = historyStr ? historyStr.split("|").filter(Boolean) : [];
+    items.push({ id, name, category, currentDate, history });
+  }
 }
-function autoSave() {
-    const tx = db.transaction(["store"], "readwrite");
-    const s = tx.objectStore("store");
-    s.put({ id: "dataList", value: dataList });
-    s.put({ id: "categories", value: categories });
-    updateFilterUI();
+function itemsToCSV() {
+  const header = ["id","name","category","currentDate","historyDates"];
+  const lines = [header.join(",")];
+  items.forEach(it => {
+    const historyStr = (it.history || []).join("|");
+    const row = [
+      it.id,
+      (it.name || ""),
+      (it.category || ""),
+      (it.currentDate || ""),
+      historyStr
+    ].map(v => (v || "").replace(/,/g, " ")); // 簡易: カンマをスペースに
+    lines.push(row.join(","));
+  });
+  return lines.join("\n");
 }
-function updateFilterUI() {
-    const filters = [document.getElementById('filter-cat'), document.getElementById('hist-edit-cat')];
-    filters.forEach(f => {
-        if(!f) return;
-        const cur = f.value;
-        f.innerHTML = f.id === 'filter-cat' ? '<option value="all">すべて表示</option>' : '<option value="">未設定</option>';
-        categories.forEach(c => { if(c && c.trim()) f.innerHTML += `<option value="${c}">${c}</option>`; });
-        f.value = categories.includes(cur) ? cur : (f.id === 'filter-cat' ? 'all' : '');
-    });
+function loadCategoriesFromCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+  if (lines.length === 0) return;
+  categories = [];
+  for (let i = 0; i < lines.length; i++) {
+    const name = lines[i].trim();
+    if (!name) continue;
+    categories.push(name);
+  }
+  if (!categories.includes("(カテゴリなし)")) {
+    categories.unshift("(カテゴリなし)");
+  }
 }
-function showScreen(id) {
-    currentView = id;
-    ['list', 'history', 'master'].forEach(s => document.getElementById('screen-'+s).classList.add('hidden'));
-    document.getElementById('header-ui').classList.toggle('hidden', id !== 'list');
-    document.getElementById('screen-' + id).classList.remove('hidden');
-    document.getElementById('tab-list').classList.toggle('active', id === 'list');
-    document.getElementById('tab-master').classList.toggle('active', id === 'master');
-    if(id === 'master') renderMaster();
-    if(id === 'list') renderList();
+function categoriesToCSV() {
+  return categories.join("\n");
 }
 
-// ③ 新規入力での日付は今日を表示する
-function addItem() {
-    const f = document.getElementById('filter-cat').value;
-    const cat = (f === 'all') ? "" : f;
-    dataList.unshift({ id: Date.now(), category: cat, name: "", history: [], tempDate: getTodayJST() });
-    renderList(); autoSave(); showToast("追加しました");
+/* ===== リスト画面描画 ===== */
+const listContainer = document.getElementById("list-container");
+const listEmpty = document.getElementById("list-empty");
+const searchInput = document.getElementById("search-input");
+const filterCategory = document.getElementById("filter-category");
+
+searchInput.addEventListener("input", renderList);
+filterCategory.addEventListener("change", renderList);
+
+document.getElementById("add-item-btn").addEventListener("click", () => {
+  const cat = filterCategory.value || "(カテゴリなし)";
+  const newItem = {
+    id: uuid(),
+    name: "",
+    category: cat,
+    currentDate: "",
+    history: []
+  };
+  items.unshift(newItem);
+  renderList();
+});
+
+function renderCategoryFilter() {
+  filterCategory.innerHTML = "";
+  const optAll = document.createElement("option");
+  optAll.value = "";
+  optAll.textContent = "すべてのカテゴリ";
+  filterCategory.appendChild(optAll);
+
+  const sorted = categories.slice();
+  // (カテゴリなし) を先頭固定
+  sorted.sort((a,b) => {
+    if (a === "(カテゴリなし)") return -1;
+    if (b === "(カテゴリなし)") return 1;
+    return a.localeCompare(b, "ja");
+  });
+  sorted.forEach(cat => {
+    const opt = document.createElement("option");
+    opt.value = cat;
+    opt.textContent = cat;
+    filterCategory.appendChild(opt);
+  });
 }
-function doUpdate(idx) {
-    const targetDate = dataList[idx].tempDate || getTodayJST();
-    dataList[idx].history.unshift(targetDate);
-    dataList[idx].history.sort((a, b) => new Date(b) - new Date(a));
-    dataList[idx].tempDate = getTodayJST();
-    renderList(); autoSave(); showToast("更新しました");
-}
-function viewHistory(idx) {
-    currentEditIdx = idx;
-    const item = dataList[idx];
-    document.getElementById('hist-edit-name').value = item.name;
-    document.getElementById('hist-edit-cat').value = item.category;
-    const cont = document.getElementById('history-content');
-    cont.innerHTML = item.history.map((h, i) => `<div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #eee; background:white;"><span>${h}</span><button onclick="deleteHist(${idx}, ${i})" style="color:red; border:none; background:none;">削除</button></div>`).join('') || "履歴なし";
-    showScreen('history');
-}
-function saveHistEdit() {
-    if(currentEditIdx === -1) return;
-    dataList[currentEditIdx].name = document.getElementById('hist-edit-name').value;
-    dataList[currentEditIdx].category = document.getElementById('hist-edit-cat').value;
-    autoSave(); showToast("保存しました");
-}
-function deleteHist(itemIdx, histIdx) { dataList[itemIdx].history.splice(histIdx, 1); viewHistory(itemIdx); autoSave(); }
-function renderMaster() {
-    const container = document.getElementById('master-list');
-    container.innerHTML = categories.map((c, i) => `<div style="display:flex; gap:10px; margin-bottom:10px;"><input type="text" value="${c}" style="flex:1; padding:12px; border-radius:8px; border:1px solid #ddd;" onchange="categories[${i}]=this.value; autoSave();"><button onclick="if(confirm('削除？')){categories.splice(${i},1); autoSave(); renderMaster();}" style="background:var(--danger); color:white; border:none; border-radius:8px; padding:0 15px;">×</button></div>`).join('');
-}
-function addMaster() { categories.push("新カテゴリ"); renderMaster(); autoSave(); }
 
 function renderList() {
-    const container = document.getElementById('screen-list'); container.innerHTML = '';
-    const filter = document.getElementById('filter-cat').value;
-    const key = document.getElementById('search-input').value.toLowerCase();
-    dataList.forEach((item, originalIdx) => {
-        if(filter !== 'all' && item.category !== filter) return;
-        if(key && !(item.name || "").toLowerCase().includes(key)) return;
+  listContainer.innerHTML = "";
+  const keyword = searchInput.value.trim().toLowerCase();
+  const catFilter = filterCategory.value;
+  const filtered = items.filter(it => {
+    if (catFilter && it.category !== catFilter) return false;
+    if (keyword && !(it.name || "").toLowerCase().includes(keyword)) return false;
+    return true;
+  });
+  if (filtered.length === 0) {
+    listEmpty.style.display = "block";
+    return;
+  } else {
+    listEmpty.style.display = "none";
+  }
 
-        // ② リストの更新日が履歴の最新を表示しない件：履歴の[0]を最優先で表示
-        const latestHistoryDate = (item.history && item.history.length > 0) ? item.history[0] : "";
-        const calendarValue = latestHistoryDate || item.tempDate || getTodayJST();
+  filtered.forEach(it => {
+    const card = document.createElement("div");
+    card.className = "card";
 
-        let diff = "- ";
-        if(latestHistoryDate) {
-            const d1 = new Date(); d1.setHours(0,0,0,0);
-            const d2 = new Date(latestHistoryDate.replace(/-/g, '/')); d2.setHours(0,0,0,0);
-            if(!isNaN(d2.getTime())) diff = Math.floor((d1 - d2) / (1000*60*60*24));
-        }
-        const card = document.createElement('div'); card.className = 'card';
-        card.innerHTML = `<input type="text" class="item-name" placeholder="名前入力..." value="${item.name || ''}" onchange="dataList[${originalIdx}].name=this.value; autoSave();"><div class="row-2"><input type="date" class="item-date" value="${calendarValue}" onchange="dataList[${originalIdx}].tempDate=this.value; autoSave(); renderList();"><span class="item-days">${diff}日</span><div class="btn-group"><button class="btn-sm" style="background:#94a3b8" onclick="viewHistory(${originalIdx})">履歴</button><button class="btn-sm" style="background:#4cb6f2" onclick="doUpdate(${originalIdx})">更新</button><button class="btn-sm" style="background:#f87171" onclick="if(confirm('削除')){dataList.splice(${originalIdx},1); renderList(); autoSave();}">×</button></div></div>`;
-        container.appendChild(card);
+    // 1行目: 名前 + カテゴリ
+    const rowTop = document.createElement("div");
+    rowTop.className = "card-row top";
+
+    const nameWrap = document.createElement("div");
+    nameWrap.className = "name";
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.value = it.name || "";
+    nameInput.placeholder = "名前";
+    nameInput.addEventListener("focus", handleFirstFocusPlaceholder);
+    nameInput.addEventListener("blur", (e) => {
+      if (!e.target.value.trim()) {
+        // 空文字を防ぐ: 直前の値に戻す
+        e.target.value = it.name || "";
+      }
     });
+    nameInput.addEventListener("input", (e) => {
+      it.name = e.target.value;
+    });
+    nameWrap.appendChild(nameInput);
+
+    const catWrap = document.createElement("div");
+    catWrap.className = "cat";
+    const catSelect = document.createElement("select");
+    // カテゴリ選択: (カテゴリなし) を一番上に固定
+    const sorted = categories.slice();
+    sorted.sort((a,b) => {
+      if (a === "(カテゴリなし)") return -1;
+      if (b === "(カテゴリなし)") return 1;
+      return a.localeCompare(b, "ja");
+    });
+    sorted.forEach(cat => {
+      const opt = document.createElement("option");
+      opt.value = cat;
+      opt.textContent = cat;
+      catSelect.appendChild(opt);
+    });
+    catSelect.value = it.category || "(カテゴリなし)";
+    catSelect.addEventListener("change", (e) => {
+      it.category = e.target.value;
+      renderAll(); // 他のビューにも反映
+    });
+    catWrap.appendChild(catSelect);
+
+    rowTop.appendChild(nameWrap);
+    rowTop.appendChild(catWrap);
+
+    // 2行目: 日付 + 経過日数 + ボタン群
+    const rowBottom = document.createElement("div");
+    rowBottom.className = "card-row bottom";
+
+    const dateWrap = document.createElement("div");
+    dateWrap.className = "date";
+    const dateInput = document.createElement("input");
+    dateInput.type = "date";
+    dateInput.value = it.currentDate || "";
+    dateInput.addEventListener("change", (e) => {
+      it.currentDate = e.target.value;
+      elapsedSpan.textContent = formatElapsed(it.currentDate);
+    });
+    dateWrap.appendChild(dateInput);
+
+    const elapsedSpan = document.createElement("div");
+    elapsedSpan.className = "elapsed";
+    elapsedSpan.textContent = formatElapsed(it.currentDate);
+
+    const btnWrap = document.createElement("div");
+    btnWrap.className = "buttons";
+
+    const historyBtn = document.createElement("button");
+    historyBtn.className = "btn btn-info";
+    historyBtn.textContent = "履歴";
+    historyBtn.addEventListener("click", () => openHistoryModal(it.id));
+
+    const updateBtn = document.createElement("button");
+    updateBtn.className = "btn btn-success";
+    updateBtn.textContent = "更新";
+    updateBtn.addEventListener("click", () => {
+// ★追加：同じ名前・同じカテゴリ・同じ日付なら更新しない
+const latestHistory = it.history.slice().sort().slice(-1)[0] || "";
+if (
+  it.currentDate &&
+  it.currentDate === latestHistory &&
+  it.name === nameInput.value &&
+  it.category === catSelect.value
+) {
+  alert("同じ内容のため更新しません。");
+  return;
+}
+      if (!it.currentDate) {
+        showToast("日付を入力してください");
+        return;
+      }
+      if (!it.history) it.history = [];
+      if (!it.history.includes(it.currentDate)) {
+        it.history.push(it.currentDate);
+      }
+      // 最新日付にリセット
+      const latest = it.history.slice().sort().slice(-1)[0];
+      it.currentDate = latest;
+      dateInput.value = latest;
+      elapsedSpan.textContent = formatElapsed(latest);
+      showToast("更新を履歴に保存しました");
+    });
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "btn btn-danger";
+    deleteBtn.textContent = "削除";
+    deleteBtn.addEventListener("click", () => {
+      if (!confirm("このアイテムを削除しますか？")) return;
+      items = items.filter(x => x.id !== it.id);
+      renderList();
+    });
+
+    btnWrap.appendChild(historyBtn);
+    btnWrap.appendChild(updateBtn);
+    btnWrap.appendChild(deleteBtn);
+
+    rowBottom.appendChild(dateWrap);
+    rowBottom.appendChild(elapsedSpan);
+    rowBottom.appendChild(btnWrap);
+
+    card.appendChild(rowTop);
+    card.appendChild(rowBottom);
+
+    listContainer.appendChild(card);
+  });
 }
 
-async function syncWithSheets() {
-    if(!GAS_URL || GAS_URL.includes("ここに")) return alert("GASのURLを貼ってください");
-    showToast("クラウドへ保存中...");
-    try {
-        await fetch(GAS_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ dataList: dataList, categories: categories }) });
-        await new Promise(r => setTimeout(r, 800));
-        showToast("最新データを取得中...");
-        const res = await fetch(GAS_URL, { redirect: "follow" });
-        const json = await res.json();
-        if (json.dataList) {
-            // ① カテゴリが一文字になる件：row[0]がカテゴリ, row[1]が名前, row[2]が履歴 と明示
-            dataList = json.dataList.filter(row => row && row[1]).map((row, i) => ({
-                id: Date.now() + i,
-                category: row[0] || "",
-                name: row[1] || "",
-                tempDate: getTodayJST(),
-                history: row[2] ? row[2].toString().split('|').filter(d => d) : []
-            }));
-            // カテゴリの復元：row[0]がカテゴリ名
-            categories = json.categories ? json.categories : [];
-            autoSave(); renderList(); showToast("同期完了！");
+function formatElapsed(dateStr) {
+  const d = diffDays(dateStr);
+  if (d === "") return "";
+  if (d === 0) return "今日";
+  if (d > 0) return d + "日前";
+  return Math.abs(d) + "日後";
+}
+
+/* ===== 履歴モーダル ===== */
+const historyBackdrop = document.getElementById("history-modal-backdrop");
+const historyCloseBtn = document.getElementById("history-close-btn");
+const historyItemName = document.getElementById("history-item-name");
+const historyCategorySelect = document.getElementById("history-category-select");
+const historyList = document.getElementById("history-list");
+
+historyCloseBtn.addEventListener("click", closeHistoryModal);
+historyBackdrop.addEventListener("click", (e) => {
+  if (e.target === historyBackdrop) closeHistoryModal();
+});
+
+function openHistoryModal(itemId) {
+  const it = items.find(x => x.id === itemId);
+  if (!it) return;
+  currentHistoryItemId = itemId;
+  historyItemName.textContent = it.name || "(名前なし)";
+
+  // カテゴリ編集
+  historyCategorySelect.innerHTML = "";
+  const sorted = categories.slice();
+  sorted.sort((a,b) => {
+    if (a === "(カテゴリなし)") return -1;
+    if (b === "(カテゴリなし)") return 1;
+    return a.localeCompare(b, "ja");
+  });
+  sorted.forEach(cat => {
+    const opt = document.createElement("option");
+    opt.value = cat;
+    opt.textContent = cat;
+    historyCategorySelect.appendChild(opt);
+  });
+  historyCategorySelect.value = it.category || "(カテゴリなし)";
+  historyCategorySelect.onchange = (e) => {
+    it.category = e.target.value;
+    renderAll();
+  };
+
+  renderHistoryList(it);
+  historyBackdrop.classList.add("active");
+}
+function closeHistoryModal() {
+  historyBackdrop.classList.remove("active");
+  currentHistoryItemId = null;
+}
+function renderHistoryList(it) {
+  historyList.innerHTML = "";
+  const history = (it.history || []).slice().sort();
+  if (history.length === 0) {
+    const msg = document.createElement("div");
+    msg.className = "empty-message";
+    msg.style.marginTop = "8px";
+    msg.textContent = "履歴がありません。「更新」ボタンで履歴を追加できます。";
+    historyList.appendChild(msg);
+    return;
+  }
+  history.forEach(dateStr => {
+    const row = document.createElement("div");
+    row.className = "history-item";
+    const left = document.createElement("div");
+    left.textContent = dateStr + " (" + formatElapsed(dateStr) + ")";
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn btn-danger";
+    delBtn.textContent = "削除";
+    delBtn.addEventListener("click", () => {
+      it.history = it.history.filter(d => d !== dateStr);
+      // currentDate が削除された場合は最新に更新
+      if (it.currentDate === dateStr) {
+        const latest = it.history.slice().sort().slice(-1)[0] || "";
+        it.currentDate = latest;
+      }
+      renderHistoryList(it);
+      renderList();
+    });
+    row.appendChild(left);
+    row.appendChild(delBtn);
+    historyList.appendChild(row);
+  });
+}
+
+/* ===== カテゴリ管理 ===== */
+const categoryListEl = document.getElementById("category-list");
+const categoryEmpty = document.getElementById("category-empty");
+document.getElementById("add-category-btn").addEventListener("click", () => {
+  // 新規カテゴリは空文字で追加し、描画時に疑似プレースホルダ
+  categories.push(""); // 描画時に "(カテゴリなし)" は除外
+  renderCategories();
+});
+
+function renderCategories() {
+  categoryListEl.innerHTML = "";
+  const visibleCats = categories.filter(c => c !== "(カテゴリなし)");
+  if (visibleCats.length === 0) {
+    categoryEmpty.style.display = "block";
+  } else {
+    categoryEmpty.style.display = "none";
+  }
+
+  visibleCats.forEach((catName, idxVisible) => {
+    const row = document.createElement("div");
+    row.className = "category-row";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    const globalIndex = categories.indexOf(catName);
+    const initialText = "新しいカテゴリ名";
+    if (!catName) {
+      setupPseudoPlaceholder(input, initialText);
+    } else {
+      input.value = catName;
+      input.classList.add("pseudo-placeholder");
+      input.dataset.empty = "false";
+      placeholderState.set(input, {
+        initial: initialText,
+        touched: true,
+        lastValue: catName
+      });
+    }
+    input.addEventListener("focus", handleFirstFocusPlaceholder);
+    input.addEventListener("blur", (e) => {
+      const st = placeholderState.get(input);
+      if (!e.target.value.trim()) {
+        // 空文字を防ぐ: 直前の値に戻す
+        e.target.value = st ? st.lastValue : catName || initialText;
+      }
+      const newVal = e.target.value.trim();
+      if (newVal === initialText) {
+        categories[globalIndex] = "";
+      } else {
+        categories[globalIndex] = newVal;
+      }
+      renderAll();
+    });
+    input.addEventListener("input", (e) => {
+      const st = placeholderState.get(input);
+      if (st) st.lastValue = e.target.value;
+    });
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn btn-danger";
+    delBtn.textContent = "削除";
+    delBtn.addEventListener("click", () => {
+      const nameToDelete = categories[globalIndex];
+      if (!confirm(`カテゴリ「${nameToDelete || "未命名"}」を削除しますか？\n紐づくアイテムのカテゴリは空になります。`)) return;
+      // データ側のカテゴリを空に
+      items.forEach(it => {
+        if (it.category === nameToDelete) {
+          it.category = "(カテゴリなし)";
         }
-    } catch (e) { showToast("同期失敗"); console.error(e); }
+      });
+      categories.splice(globalIndex, 1);
+      if (!categories.includes("(カテゴリなし)")) {
+        categories.unshift("(カテゴリなし)");
+      }
+      renderAll();
+    });
+
+    row.appendChild(input);
+    row.appendChild(delBtn);
+    categoryListEl.appendChild(row);
+  });
 }
 
-function handleImportClick() { document.getElementById('csv-input').click(); }
-function processFile(input) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const lines = e.target.result.split(/\r?\n/);
-        const newList = lines.filter(l => l.trim()).map((l, i) => {
-            const p = l.split(',');
-            return { id: Date.now() + i, category: p[0] || "", name: p[1] || "", tempDate: getTodayJST(), history: p[2] ? p[2].split('|').filter(d => d) : [] };
-        });
-        dataList = [...newList, ...dataList]; autoSave(); renderList();
-    };
-    reader.readAsText(input.files[0], "UTF-8");
+/* ===== 初回フォーカス時プレースホルダ処理 (共通) ===== */
+function handleFirstFocusPlaceholder(e) {
+  const input = e.target;
+  if (!placeholderState.has(input)) {
+    // 通常の placeholder の場合: 初回フォーカスで消す & 空文字防止
+    placeholderState.set(input, {
+      initial: input.placeholder || "",
+      touched: false,
+      lastValue: input.value
+    });
+  }
+  const st = placeholderState.get(input);
+  if (!st.touched) {
+    input.value = "";
+    st.touched = true;
+  }
 }
-function handleExportClick() {
-    let csv = dataList.map(item => `${item.category},${item.name},${item.history.join('|')}`).join('\n');
-    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: "text/csv" });
-    const a = document.createElement("a"); a.download = `backup.csv`; a.href = URL.createObjectURL(blob); a.click();
+
+/* ===== 全体再描画 ===== */
+function renderAll() {
+  renderCategoryFilter();
+  renderList();
+  renderCategories();
 }
+
+/* 初期描画 */
+renderAll();
 </script>
 </body>
 </html>
